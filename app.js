@@ -1,85 +1,57 @@
-const { json } = require("express");
-
+// --- 1. REFERENCIAS AL DOM ---
 const fromProducto = document.getElementById("formProducto");
 const Nombre = document.getElementById("nombre");
 const categoria = document.getElementById("categoria");
 const precio = document.getElementById("precio");
 const stock = document.getElementById("stock");
 const filtroCategoria = document.getElementById("filtroCategoria");
-const tablaProductos = document.getElementById("tablaProductos")
+const tablaProductos = document.getElementById("tablaProductos");
+const buscarInput = document.getElementById("buscar");
 
 let ListaProductos = [];
-// funcion inicial
-Window.onload = function(){
+
+// --- 2. INICIO DEL SISTEMA (Diagrama 1) ---
+window.onload = function() {
     const datosDealmacenamiento = localStorage.getItem("productosTienda");
-
-    if (datosDealmacenamiento !==null ){
+    if (datosDealmacenamiento !== null) {
         ListaProductos = JSON.parse(datosDealmacenamiento);
-    } else{ ListaProductos=[];}
-    actualizarTablaHTML()
-};
-function actualizarTablaHTML(){
-    console.log("tabla aztualizada con:", ListaProductos);
-}
-// funcion de registrar productos
-fromProducto.addEventListener("submit", function(e){
-    e.preventDefault();
-    if (Nombre.value === "" || categoria.value ==="" || stock.value ===""){
-        alert("todos los campos son obligatorios");
-        return;
+    } else {
+        ListaProductos = [];
     }
-//crear objeto producto
-const nuevoProducto = {
-        id: Date.now(),
-        nombre: Nombre.value,
-        categoria: categoria.value,
-        precio: Number(precio.value),
-        stock: Number(stock.value),
-        fechaRegistro: new Date(),
-        fechaActualizacion: new Date()
-    };
-    ListaProductos.push(nuevoProducto);
-    //aqui se guarda en el localstorage
-     localStorage.setItem("productosTienda", JSON.stringify(ListaProductos));
-    
-     //limpiar
-     fromProducto.reset()
-     actualizarTablaHTML();
-})
-// funcion de consultar inventario
-function actualizarTablaHTML(){
-    tablaProductos.innerHTML="";
- //recorre cada producto 
-    ListaProductos.forEach((producto)=>{
+    actualizarTablaHTML();
+};
 
-        //calcular dias de registro y dias de actualizacion
+// --- 3. CONSULTAR INVENTARIO (Diagrama 3) ---
+// Agregamos (lista = ListaProductos) para que funcione con los filtros
+function actualizarTablaHTML(lista = ListaProductos) {
+    console.log("Actualizando tabla con", lista.length, "productos");
+    tablaProductos.innerHTML = "";
+
+    lista.forEach((producto) => {
         const hoy = new Date();
-        const fechaReg = new Date (producto.fechaRegistro);
-        const fechaact = new(producto.fechaActualizacion);
+        const fechaReg = new Date(producto.fechaRegistro);
+        const fechaAct = new Date(producto.fechaActualizacion);
 
-        const diasDeRegistro = (hoy - fechaReg) / (1000*60*60*24);
-        const diasDeActualizacion =(hoy - fechaact) /(1000*60*60*24);
-        //definir estado por defecto(color y texto)
-        let claseBage = "bg-primary";
-        let textosEstado = "normal";
+        const diasDeRegistro = (hoy - fechaReg) / (1000 * 60 * 60 * 24);
+        const diasDeActualizacion = (hoy - fechaAct) / (1000 * 60 * 60 * 24);
 
-        //stok
-        if (producto.stock < 5){
-            claseBage = "db-danger";
-            textosEstado ="Alerta Stock";
-        } else if (diasDeRegistro < 15){
-            claseBage = "bg-success";
-            textosEstado = "nuevo";
-        } else if (diasDeActualizacion > 30){
-            claseBage = "bg-secondary";
-            textosEstado = "antiguo";
+        let claseBadge = "bg-primary";
+        let textoEstado = "Normal";
+
+        // Lógica de colores (Semáforo)
+        if (producto.stock < 5) {
+            claseBadge = "bg-danger"; // Corregido db-danger a bg-danger
+            textoEstado = "Alerta Stock";
+        } else if (diasDeRegistro < 15) {
+            claseBadge = "bg-success";
+            textoEstado = "Nuevo";
+        } else if (diasDeActualizacion > 30) {
+            claseBadge = "bg-secondary";
+            textoEstado = "Antiguo";
         }
 
-
-    //filtrar en el html se implemetan variables con el $
-
-    tablaProductos.innerHTML += `
-    <tr>
+        tablaProductos.innerHTML += `
+            <tr>
                 <td>${producto.nombre}</td>
                 <td>${producto.categoria}</td>
                 <td>$${producto.precio}</td>
@@ -95,54 +67,86 @@ function actualizarTablaHTML(){
                 </td>
             </tr>
         `;
-
-
-
     });
-
- //funcion para actualizar productos
- function prepararEdicion (idRecibido){
-    //busca en el array
- }const productoEncontrado = ListaProductos.find(p => p.id === idRecibido);
-//modificar precio y stok
-if (productoEncontrado){
-    const nuevoprecio = prompt("ingrese el nuevo precio:", productoEncontrado.precio);
-    const nuevoStok = prompt("ingrese la nueva cantidad:",productoEncontrado.stock);
-    //actualizar fecha
-    productoEncontrado.fechaActualizacion = new Date();
-
-    //guardar cambios y actualizacion
-    localStorage.setItem("productosTienda", JSON.stringify(ListaProductos));
-
-    //mostrar ms de exito
-    alert("producto actualizado con exito");
-    actualizarTablaHTML();
-
-
 }
-//funcion de eliminar
-function eliminarProducto(idRecibido){
-    confirm("¿esta seguro que quiere eliminar este producto");
 
-    if(respuesta){
-        // esto es para filtar y dejar afuera el id
-        ListaProductos = ListaProductos.filter(producto => producto.id !== idRecibido);
+// --- 4. REGISTRAR PRODUCTO (Diagrama 2) ---
+fromProducto.addEventListener("submit", function(e) {
+    e.preventDefault();
+    if (Nombre.value === "" || categoria.value === "" || stock.value === "" || precio.value === "") {
+        alert("Todos los campos son obligatorios");
+        return;
+    }
 
-        //ahora se actualiza en el en localsrorage
+    const nuevoProducto = {
+        id: Date.now(),
+        nombre: Nombre.value,
+        categoria: categoria.value,
+        precio: Number(precio.value),
+        stock: Number(stock.value),
+        fechaRegistro: new Date(),
+        fechaActualizacion: new Date()
+    };
 
-    localStorage.setItem("productosTIENDA", JSON.stringify(ListaProductos));
+    ListaProductos.push(nuevoProducto);
+    localStorage.setItem("productosTienda", JSON.stringify(ListaProductos));
+    console.log("Producto registrado:", nuevoProducto);
+    fromProducto.reset();
+    actualizarTablaHTML();
+});
 
-    //ahora se muestra el ms de la eliminacion
-    alert("producto eliminado corretamente")
+// --- 5. ACTUALIZAR PRODUCTO (Diagrama 4) ---
+function prepararEdicion(idRecibido) {
+    const productoEncontrado = ListaProductos.find(p => p.id === idRecibido);
 
-    actualizarTablaHTML
+    if (productoEncontrado) {
+        const nuevoPrecio = prompt("Ingrese el nuevo precio:", productoEncontrado.precio);
+        const nuevoStock = prompt("Ingrese la nueva cantidad:", productoEncontrado.stock);
 
+        if (nuevoPrecio !== null && nuevoStock !== null) {
+            productoEncontrado.precio = Number(nuevoPrecio);
+            productoEncontrado.stock = Number(nuevoStock);
+            productoEncontrado.fechaActualizacion = new Date();
+
+            localStorage.setItem("productosTienda", JSON.stringify(ListaProductos));
+            alert("Producto actualizado con éxito");
+            actualizarTablaHTML();
+        }
     }
 }
-} 
 
+// --- 6. ELIMINAR PRODUCTO (Diagrama 5) ---
+function eliminarProducto(idRecibido) {
+    // Corregido: guardar la respuesta del confirm
+    const respuesta = confirm("¿Está seguro que quiere eliminar este producto?");
 
+    if (respuesta) {
+        ListaProductos = ListaProductos.filter(producto => producto.id !== idRecibido);
+        localStorage.setItem("productosTienda", JSON.stringify(ListaProductos));
+        alert("Producto eliminado correctamente");
+        actualizarTablaHTML();
+    } else {
+        // Camino del NO: Volver al menú
+        actualizarTablaHTML();
+    }
+}
 
- 
- 
+// --- 7. FILTRAR POR CATEGORÍA (Diagrama 6) ---
+filtroCategoria.addEventListener("change", function() {
+    const seleccion = filtroCategoria.value;
+    if (seleccion === "") {
+        actualizarTablaHTML(ListaProductos);
+    } else {
+        const filtrados = ListaProductos.filter(p => p.categoria === seleccion);
+        actualizarTablaHTML(filtrados);
+    }
+});
 
+// --- 8. BUSCAR PRODUCTO (Diagrama 7) ---
+buscarInput.addEventListener("input", function() {
+    const textoUsuario = buscarInput.value.toLowerCase();
+    const productosEncontrados = ListaProductos.filter(p => 
+        p.nombre.toLowerCase().includes(textoUsuario)
+    );
+    actualizarTablaHTML(productosEncontrados);
+});
